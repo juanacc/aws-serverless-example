@@ -6,11 +6,12 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: nodejs12.x
+  region: us-east-1
 
 functions:
-  hello:
-    handler: handler.hello
+  hacerPedido:
+    handler: handler.hacerPedido
     events:
       - http:
-          method: get
-          path: hello
+          method: post
+          path: pedido
