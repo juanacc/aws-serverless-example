@@ -11,12 +11,13 @@ provider:
     REGION: ${self:provider.region}
     PENDING_ORDER_QUEUE:
       Ref: PendingOrdersQueue
-      
+    PENDING_ORDER_QUEUE_NAME: PendingOrdersQueue
+
   iamRoleStatements: #defino las politicas de acceso que tendran las lambdas
     - Effect: "Allow"
       Action:
         - "sqs:SendMessage"
-      Resource: "arn:aws:sqs:${self:provider.region}:*:PendingOrdersQueue"
+      Resource: "arn:aws:sqs:${self:provider.region}:*:${self:provider.environment.PENDING_ORDER_QUEUE_NAME}"
 
 functions:
   hacerPedido:
@@ -25,10 +26,20 @@ functions:
       - http:
           method: post
           path: pedido
+  prepararPedido:
+    handler: handler.prepararPedido
+    events: # esta funcion se activa cuando hay un nuevo mensaje en la cola PendingOrdersQueue
+      - sqs:
+          arn: #amazon resource name
+            Fn::GetAtt:
+              - PendingOrdersQueue #nombre del recurso que creamos mas abajo en Resources
+              - Arn
+          batchSize: 1 #cantidad de mensajes que esperamos para disparar la funcion
+
 
 resources:
   Resources:
     PendingOrdersQueue: # este es el nombre que le vamos a dar dentro de CloudFormation a la cola
       Type: "AWS::SQS::Queue"
       Properties:
-        QueueName: "PendingOrdersQueue" # este es el nombre de la cola como lo van a ver los servicios externos
+        QueueName: ${self:provider.environment.PENDING_ORDER_QUEUE_NAME} # este es el nombre de la cola como lo van a ver los servicios externos

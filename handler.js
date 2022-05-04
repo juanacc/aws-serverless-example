@@ -10,15 +10,23 @@ const QUEUE_URL = process.env.PENDING_ORDER_QUEUE; // esta variable es la url de
 // context: Objeto de contexto. Contexto de ejecucion de AWS Lambda
 // callback: Funcion de callback. Es la funcion que se ejecuta cuando termina la ejecucion de la funcion. Es opcional y sirve para devolver una respuesta al disparador
 module.exports.hacerPedido = (event, context, callback) => {
-  
   // si en la consola ejecutamos sls logs -f hacerPedido -t, veremos el console log al hacer el post desde postman
   console.log('Hacer pedido');
   
+  const {name, address, pizzas} = JSON.parse(event.body);
   const orderId = v4();
+
+  const order = {
+    orderId,
+    name,
+    address,
+    pizzas,
+    date: new Date().toISOString()
+  }
   
   // creo un objeto de mensaje para enviar a la cola
   const params = {
-    MessageBody: JSON.stringify({orderId}),
+    MessageBody: JSON.stringify(order),
     QueueUrl: QUEUE_URL
   }
 
@@ -28,7 +36,7 @@ module.exports.hacerPedido = (event, context, callback) => {
     }
     else{
       const message = {
-        orderId,
+        order,
         messageId: data.MessageId //id del mensaje que se envio a la cola
       }
   
@@ -36,6 +44,13 @@ module.exports.hacerPedido = (event, context, callback) => {
     }
     
   });
+};
+
+module.exports.prepararPedido = (event, context, callback) => {
+  console.log('Hacer pedido');
+  console.log(event);
+
+  callback();
 };
 
 const sendResponse = (statusCode, message, callback) => {
