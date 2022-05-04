@@ -7,6 +7,16 @@ provider:
   name: aws
   runtime: nodejs12.x
   region: us-east-1
+  environment: #definimos variables de ambiente que necesitaremos en el handler.js. Con las variables de ambiente logramos conectar la infraestructura con nuestro codigo
+    REGION: ${self:provider.region}
+    PENDING_ORDER_QUEUE:
+      Ref: PendingOrdersQueue
+      
+  iamRoleStatements: #defino las politicas de acceso que tendran las lambdas
+    - Effect: "Allow"
+      Action:
+        - "sqs:SendMessage"
+      Resource: "arn:aws:sqs:${self:provider.region}:*:PendingOrdersQueue"
 
 functions:
   hacerPedido:
@@ -15,3 +25,10 @@ functions:
       - http:
           method: post
           path: pedido
+
+resources:
+  Resources:
+    PendingOrdersQueue: # este es el nombre que le vamos a dar dentro de CloudFormation a la cola
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "PendingOrdersQueue" # este es el nombre de la cola como lo van a ver los servicios externos
