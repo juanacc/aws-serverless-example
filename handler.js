@@ -2,6 +2,7 @@
 
 const AWS = require('aws-sdk'); //a esta biblioteca no la tenemos que instalar dado que esta instalada en todas las lambdas por defecto
 const {v4} = require('uuid');
+const orderMetadataManager = require('./orderMetadataManager');
 
 const sqs = new AWS.SQS({region: process.env.REGION}); //creo una variable que lo que hace es llamar al modulo de SQS en la libreria de AWS
 const QUEUE_URL = process.env.PENDING_ORDER_QUEUE; // esta variable es la url de la queue
@@ -49,9 +50,44 @@ module.exports.hacerPedido = (event, context, callback) => {
 module.exports.prepararPedido = (event, context, callback) => {
   console.log('Hacer pedido');
   console.log(event);
+  
+  const order =JSON.parse(event.Records[0].body);
 
-  callback();
+  orderMetadataManager
+    .saveCompletedOrder(order)
+    .then(data=>{
+      callback();
+    })
+    .catch(err=>{
+      callback(err);
+    })
 };
+
+module.exports.enviarPedido = (event, context, callback) => {
+  console.log('Enviar pedido');
+  console.log(event);
+
+  const record = event.Records[0];
+  if(record.eventName === 'INSERT'){
+    console.log('Enviando pedido');
+
+    const orderId = record.dynamodb.Keys.orderId.S;
+
+    orderMetadataManager
+      .deliverOrder(orderId)
+      .then(data=>{
+        console.log(data);
+        callback();
+      })
+      .catch(err=>{
+        callback(err);
+      });
+  }
+  else{
+    console.log('No hay nada que enviar');
+    callback();
+  }
+}
 
 const sendResponse = (statusCode, message, callback) => {
   const response = {

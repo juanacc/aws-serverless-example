@@ -12,12 +12,21 @@ provider:
     PENDING_ORDER_QUEUE:
       Ref: PendingOrdersQueue
     PENDING_ORDER_QUEUE_NAME: PendingOrdersQueue
+    COMPLETED_ORDER_TABLE: CompletedOrderTable
 
   iamRoleStatements: #defino las politicas de acceso que tendran las lambdas
     - Effect: "Allow"
       Action:
         - "sqs:SendMessage"
       Resource: "arn:aws:sqs:${self:provider.region}:*:${self:provider.environment.PENDING_ORDER_QUEUE_NAME}"
+    - Effect: "Allow"
+      Action: # se definen las acciones, sobre el recurso, que estamos permitiendo
+        - "dynamodb:GetItem"
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:DeleteItem"
+      Resource: # se define el recursos sobre el cual estamos dando los permisos
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.COMPLETED_ORDER_TABLE}"
 
 functions:
   hacerPedido:
@@ -35,7 +44,17 @@ functions:
               - PendingOrdersQueue #nombre del recurso que creamos mas abajo en Resources
               - Arn
           batchSize: 1 #cantidad de mensajes que esperamos para disparar la funcion
-
+  enviarPedido:
+    handler: handler.enviarPedido
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1 # se definen la cantidad de cambios que debe haber en la db para que se ejecute la lambda
+          startingPosition: LATEST
+          arn:
+            Fn::GetAtt:
+              - CompletedOrdersTable # nombre del recurso cloudformation de la tabla
+              - StreamArn
 
 resources:
   Resources:
@@ -43,3 +62,18 @@ resources:
       Type: "AWS::SQS::Queue"
       Properties:
         QueueName: ${self:provider.environment.PENDING_ORDER_QUEUE_NAME} # este es el nombre de la cola como lo van a ver los servicios externos
+    CompletedOrdersTable: # nombre dle recurso en cloudformation. Puede ser cualquier nombre
+      Type: "AWS::DynamoDB::Table" # tipo de recurso de cloudformation
+      Properties: # se listan las propiedades de la tabla
+        AttributeDefinitions: # se definen los atributos de la tabla
+        - AttributeName: "orderId" # solo se define la clave. Si hay mas atributos en la tabla, no es necesario definirlos aca. Esto se debe a que dynamoDB es una db sin esquema
+          AttributeType: "S" # string
+        KeySchema:
+        - AttributeName: "orderId"
+          KeyType: "HASH"
+        ProvisionedThroughput: # se define la capacidad que se le da a la tabla
+          ReadCapacityUnits: 1 # capacidad de lectura de una unidad
+          WriteCapacityUnits: 1 # capacidad de escritura de una unidad
+        TableName: ${self:provider.environment.COMPLETED_ORDER_TABLE} # nombre de la tabla
+        StreamSpecification: # se define el tipo de stream que queremos
+          StreamViewType: NEW_IMAGE #espedificamos el tipo de stream que queremos(son 4 los posibles). Espeecificamos que solo queremos la nueva imagen y no lo que habia antes
