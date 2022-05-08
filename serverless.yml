@@ -62,6 +62,8 @@ functions:
           method: get
           path: pedido/{orderId}
 
+# se definen los recursos que usaremos. Para los recursos que serverless framework no tiene una notacion prevista, usamos la notacion de cloudformation. Por ej, para
+# crear las colas, sls no tiene una notacion particular y entonces las definimos con cloudformation
 resources:
   Resources:
     PendingOrdersQueue: # este es el nombre que le vamos a dar dentro de CloudFormation a la cola
