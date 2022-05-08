@@ -9,7 +9,7 @@ provider:
   region: us-east-1
   environment: #definimos variables de ambiente que necesitaremos en el handler.js. Con las variables de ambiente logramos conectar la infraestructura con nuestro codigo
     REGION: ${self:provider.region}
-    PENDING_ORDER_QUEUE:
+    PENDING_ORDER_QUEUE: #referencia a la cola. Cuando se hace referencia a la cola, nos retorna una url que es la url a la cual se le pueden enviar los mensajes
       Ref: PendingOrdersQueue
     PENDING_ORDER_QUEUE_NAME: PendingOrdersQueue
     COMPLETED_ORDER_TABLE: CompletedOrderTable
