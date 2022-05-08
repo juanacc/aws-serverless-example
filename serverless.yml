@@ -70,15 +70,15 @@ resources:
       Type: "AWS::SQS::Queue"
       Properties:
         QueueName: ${self:provider.environment.PENDING_ORDER_QUEUE_NAME} # este es el nombre de la cola como lo van a ver los servicios externos
-    CompletedOrdersTable: # nombre dle recurso en cloudformation. Puede ser cualquier nombre
+    CompletedOrdersTable: # nombre dle recurso en cloudformation. Puede ser cualquier nombre. Se usa la notacion de cloudformation ya que sls no tiene una notacionn para crear tablas
       Type: "AWS::DynamoDB::Table" # tipo de recurso de cloudformation
       Properties: # se listan las propiedades de la tabla
         AttributeDefinitions: # se definen los atributos de la tabla
         - AttributeName: "orderId" # solo se define la clave. Si hay mas atributos en la tabla, no es necesario definirlos aca. Esto se debe a que dynamoDB es una db sin esquema
           AttributeType: "S" # string
-        KeySchema:
+        KeySchema: #esquema de la clave
         - AttributeName: "orderId"
-          KeyType: "HASH"
+          KeyType: "HASH" # se define que el tipo de clave es un hash
         ProvisionedThroughput: # se define la capacidad que se le da a la tabla
           ReadCapacityUnits: 1 # capacidad de lectura de una unidad
           WriteCapacityUnits: 1 # capacidad de escritura de una unidad
